@@ -11,7 +11,7 @@ bottom-of-image-biased token set, does a RoPE-free score remove the bias, and do
 - Baseline / sanity check: FastV (Chen et al., ECCV 2024), arXiv:2403.06764, official code https://github.com/pkunlp-icler/FastV
   (logic followed from commit `d165972`; no code copied). The coverage-constrained rule is closely related to Window FastV
   (Wen et al., ACL Findings 2025, arXiv:2502.11501, Sec. 4.2).
-- The code was written with an AI coding assistant (Claude Code); see the AI-use disclosure in the report.
+- The code was written with an AI coding assistant (Claude Code); Gemini and ChatGPT Codex were used for background research and topic selection. See the AI-use disclosure in the report.
 
 ## What is in here
 
