@@ -64,7 +64,7 @@ for m in methods[1:]:
         e = A["vs_fastv"][f"{m}@{k}"]
         c = f"{e['diff']:+.1f} <span class='small'>[{e['ci'][0]:+.1f}, {e['ci'][1]:+.1f}]</span>"
         if "p_mcnemar" in e:
-            c += f"<br><span class='small'>p={e['p_mcnemar']:.3f}; {e['fastv_wrong_m_right']}&uarr;/{e['fastv_right_m_wrong']}&darr;</span>"
+            c += f"<br><span class='small'>{'p&lt;0.001' if e['p_mcnemar'] < 0.001 else 'p=%.3f' % e['p_mcnemar']}; {e['fastv_wrong_m_right']}&uarr;/{e['fastv_right_m_wrong']}&darr;</span>"
         cells.append(c)
     rows.append([LAB[m]] + cells)
 T["TABLE_DIFF"] = table(
