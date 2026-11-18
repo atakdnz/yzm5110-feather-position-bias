@@ -53,8 +53,8 @@ Model: `llava-hf/llava-1.5-7b-hf` at revision `b234b804b114d9e37bb655e11cbbb5f5e
 ## Data access
 
 Both datasets are public and are downloaded automatically from the Hugging Face hub by `scripts/download.py`:
-- A-OKVQA (`HuggingFaceM4/A-OKVQA`, split `validation`, 1145 questions; Apache-2.0 annotations, COCO images under their own terms).
-- MME (`lmms-lab/MME`, split `test`, 2374 questions; research use per the benchmark's terms).
+- A-OKVQA (`HuggingFaceM4/A-OKVQA`, revision `d1b0efa3a436e9101dfbde3752db7607da696c35`, split `validation`, 1145 questions; annotations and COCO images under the licences stated on the dataset cards).
+- MME (`lmms-lab/MME`, revision `d6c9023f017b564f7b3ccccf5348166bce8fdbcd`, split `test`, 2374 questions; use under the benchmark's terms).
 No data is stored in this repository.
 
 ## Exact commands

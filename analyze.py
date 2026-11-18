@@ -92,6 +92,18 @@ if aok:
                 S["vs_fastv"][f"{m}@{k}"] = entry
         rs = [100 * np.mean([r[f"rand{s}@{k}"]["ok"] for r in aok]) for s in range(3)]
         S["acc"][f"rand_seeds@{k}"] = rs
+        # proposed rule against the attention-free coverage controls (paired)
+        c4 = ok_matrix(aok, f"cc4@{k}")
+        for m in ("grid", "rand"):
+            d = c4 - ok_matrix(aok, names_for(m, k))
+            lo, hi = boot_ci(d)
+            S.setdefault("cc4_vs", {})[f"{m}@{k}"] = dict(diff=100 * d.mean(), ci=[100 * lo, 100 * hi])
+        # how many questions the full model gets right are lost by each rule
+        fm = full.astype(bool)
+        S.setdefault("lost_of_full_correct", {})
+        for m in ("fastv", "cc4", "grid"):
+            x = ok_matrix(aok, f"{m}@{k}").astype(bool)
+            S["lost_of_full_correct"][f"{m}@{k}"] = [int((fm & ~x).sum()), int((~fm & x).sum())]
     summary["aokvqa"] = S
     md.append(f"## A-OKVQA val (n={n}), restricted-letter accuracy %, [95% bootstrap CI]\n")
     md.append("| Method | " + " | ".join(f"k={k} (R={R_OF[k]})" for k in BUDGETS) + " |")
@@ -112,6 +124,10 @@ if aok:
                 c += f" p={e['p_mcnemar']:.3f}"
             cells.append(c)
         md.append(f"| {LABEL[m]} | " + " | ".join(cells) + " |")
+    md.append("\nCC-FastV 4x4 minus attention-free controls (paired, points [95% CI]): " + "; ".join(
+        f"{k2}: {v['diff']:+.1f} [{v['ci'][0]:+.1f}, {v['ci'][1]:+.1f}]" for k2, v in S["cc4_vs"].items()))
+    md.append("\nQuestions answered correctly without pruning but wrong after pruning / wrong without pruning but right after: " + "; ".join(
+        f"{k2}: {v[0]}/{v[1]}" for k2, v in S["lost_of_full_correct"].items()))
     md.append("\nGreedy first-token accuracy (official FastV metric: gold letter in decoded first token)\n")
     md.append("| Method | " + " | ".join(f"k={k}" for k in BUDGETS) + " |")
     md.append("|---|" + "---|" * len(BUDGETS))
@@ -226,6 +242,9 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 plt.rcParams.update({"font.size": 9, "font.family": "serif"})
+SHORT = {"fastv": "FastV", "cc4": "CC-FastV 4x4 (proposed)", "cc2": "CC-FastV 2x2", "grid": "Uniform grid", "rand": "Random",
+         "fastv_avgq": "Paper-text criterion", "fastvnr": "RoPE-free score"}
+COL = {"fastv": "C0", "cc4": "C1", "cc2": "C2", "grid": "C3", "rand": "C4", "rand0": "C4", "fastv_avgq": "C5", "fastvnr": "C6"}
 
 sel_p = f"{RES}/selection_aokvqa.npz"
 if os.path.exists(sel_p):
@@ -261,10 +280,10 @@ if os.path.exists(sel_p):
     if "fastvnr_at_58" in Z:
         panels.append(("fastvnr_at_58", "RoPE-free score\nkeep freq., k=58"))
     panels.append(("cc4_at_58", "CC-FastV 4x4\nkeep freq., k=58"))
-    fig, ax = plt.subplots(1, len(panels), figsize=(7.4, 1.85))
+    fig, ax = plt.subplots(1, len(panels), figsize=(7.6, 1.75))
     for a, (key, title) in zip(ax, panels):
         im = a.imshow(Z[key].reshape(24, 24) / (1 if key == "attn_mean" else nq), cmap="viridis")
-        a.set_title(title, fontsize=8)
+        a.set_title(title, fontsize=6.5)
         a.set_xticks([]); a.set_yticks([])
         plt.colorbar(im, ax=a, fraction=0.046, pad=0.03).ax.tick_params(labelsize=6)
     plt.tight_layout()
@@ -274,7 +293,7 @@ if os.path.exists(sel_p):
     fig, a = plt.subplots(figsize=(3.4, 2.3))
     for m, st in [("fastv", "-o"), ("fastv_avgq", "-^"), ("cc4", "-s"), ("grid", "--"), ("rand0", ":")] + ([("fastvnr", "-.")] if "fastvnr_at_58" in Z else []):
         c = Z[f"{m}_at_58"].reshape(24, 24).sum(1)
-        a.plot(np.arange(24), c / c.sum(), st, ms=2.5, lw=1, label=m)
+        a.plot(np.arange(24), c / c.sum(), st, ms=2.5, lw=1, label=m, color=COL[m])
     a.set_xlabel("image row (0 = top)"); a.set_ylabel("share of kept tokens"); a.set_title("Row distribution of kept tokens, k=58", fontsize=8)
     a.legend(fontsize=6, frameon=False)
     plt.tight_layout(); plt.savefig(f"{FIG}/row_distribution.png", dpi=220); plt.close()
@@ -287,16 +306,17 @@ if aok:
     xs = [576] + BUDGETS
     for m, st in [("fastv", "-o"), ("cc4", "-s"), ("cc2", "-d"), ("grid", "--x"), ("rand", ":v"), ("fastv_avgq", "-^")] + ([("fastvnr", "-.p")] if "fastvnr" in MAIN else []):
         ys = [S["acc"]["full"]] + [S["acc"][f"{m}@{k}"] for k in BUDGETS]
-        a.plot(xs, ys, st, ms=3, lw=1, label=LABEL[m])
+        a.plot(xs, ys, st, ms=3, lw=1, label=SHORT[m], color=COL[m])
     a.set_xscale("log"); a.set_xticks(xs); a.set_xticklabels([str(x) for x in xs])
     a.set_xlabel("image tokens kept after layer 2 (k)"); a.set_ylabel("accuracy (%)"); a.set_title("A-OKVQA val (MC)", fontsize=8)
-    a.legend(fontsize=5.5, frameon=False)
+    a.legend(fontsize=5.2, frameon=False, loc="lower right")
     if mme:
         a = axs[1]
         SM = summary["mme"]["scores"]
         for m, st in [("fastv", "-o"), ("cc4", "-s"), ("grid", "--x"), ("rand", ":v")]:
             ys = [SM["full"]["perception"]] + [SM[f"{m}@{k}"]["perception"] for k in BUDGETS]
-            a.plot(xs, ys, st, ms=3, lw=1, label=LABEL[m])
+            a.plot(xs, ys, st, ms=3, lw=1, label=SHORT[m], color=COL[m])
+        a.legend(fontsize=5.2, frameon=False, loc="lower right")
         a.set_xscale("log"); a.set_xticks(xs); a.set_xticklabels([str(x) for x in xs])
         a.set_xlabel("image tokens kept after layer 2 (k)"); a.set_ylabel("perception score"); a.set_title("MME perception", fontsize=8)
     plt.tight_layout(); plt.savefig(f"{FIG}/accuracy_vs_budget.png", dpi=220); plt.close()

@@ -107,20 +107,20 @@ T["TABLE_SPATIAL"] = table(
 
 # ---- latency ----
 if "latency" in S:
-    L = S["latency"]
-    full = [r for r in L if r["method"] == "full"][0]
+    L = {(r["method"], r["k"]): r for r in S["latency"]}
     fl = S["flops_ratio_nominal"]
-    rows = [["No pruning", "576", f"{full['median_ms']:.1f}", f"{full['p10_ms']:.1f}&ndash;{full['p90_ms']:.1f}", "1.00", f"{full['peak_mem_gib']:.2f}", "100%"]]
+    full = L[("full", 576)]
+    def cell(m, k):
+        r = L[(m, k)]
+        return f"{r['median_ms']:.1f} <span class='small'>({r['p10_ms']:.1f}&ndash;{r['p90_ms']:.1f})</span>"
+    rows = [["576 (no pruning)", "100%", cell("full", 576), "", "", "", f"{full['peak_mem_gib']:.2f}"]]
     for k in B:
-        for m in ["fastv", "cc4", "grid", "rand0"]:
-            r = [x for x in L if x["method"] == m and x["k"] == k][0]
-            rows.append([{"fastv": "FastV", "cc4": "CC-FastV 4&times;4", "grid": "Uniform grid", "rand0": "Random"}[m], str(k),
-                         f"{r['median_ms']:.1f}", f"{r['p10_ms']:.1f}&ndash;{r['p90_ms']:.1f}", f"{r['median_ms'] / full['median_ms']:.2f}",
-                         f"{r['peak_mem_gib']:.2f}", f"{100 * fl[str(k)] if str(k) in fl else 100 * fl[k]:.0f}%"])
+        rows.append([f"{k} (<i>R</i>={R[k]})", f"{100 * fl[str(k)]:.0f}%"] + [cell(m, k) for m in ["fastv", "cc4", "grid", "rand0"]] +
+                    [f"{L[('fastv', k)]['peak_mem_gib']:.2f} / {L[('grid', k)]['peak_mem_gib']:.2f}"])
     T["TABLE_LAT"] = table(
-        f"<b>Table 9.</b> Prefill latency per question (vision encoder + projector + LLM prefill + selection; batch 1; median and 10th&ndash;90th percentile over {full['n']} A-OKVQA questions; "
-        f"A100-40GB), peak allocated memory, and FastV's theoretical LLM FLOPs ratio for the mean sequence length of {S.get('seq_len_mean', '?')} tokens <span class='tag ours'>MEASURED</span>.",
-        ["Rule", "<i>k</i>", "Median ms", "p10&ndash;p90 ms", "vs. full", "Peak GiB", "FLOPs (theory)"], rows)
+        f"<b>Table 9.</b> Prefill latency per question in ms, median (10th&ndash;90th percentile) over {full['n']} A-OKVQA questions: vision encoder + projector + LLM prefill + selection, batch 1, idle A100-40GB. "
+        f"FLOPs = FastV's theoretical LLM FLOPs ratio for the mean sequence length of {S.get('seq_len_mean', '?')} tokens. Peak = peak allocated GiB (with / without the attention-scoring pass) <span class='tag ours'>MEASURED</span>.",
+        ["Image tokens <i>k</i>", "FLOPs", "FastV", "CC-FastV 4&times;4", "Uniform grid", "Random", "Peak GiB"], rows)
 
 html = open(f"{ROOT}/report/report.html").read()
 for key, val in T.items():
