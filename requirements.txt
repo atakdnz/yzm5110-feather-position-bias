@@ -1,0 +1,12 @@
+# Exact versions used for every reported run (Google Colab, NVIDIA A100-SXM4-40GB, CUDA 13.0, Python 3.13.16)
+torch==2.14.1
+transformers==4.48.3
+tokenizers==0.21.4
+huggingface-hub==0.35.3
+datasets==4.8.5
+accelerate==1.15.0
+numpy==2.4.6
+pillow
+# analysis only (run locally)
+matplotlib>=3.8
+scipy>=1.11
