@@ -23,10 +23,11 @@ at matched latency?
 | `results/preds_mme.jsonl` | Same for MME (2374 q) |
 | `results/selection_aokvqa.npz` | How often each of the 576 patch positions was kept, per rule and budget; mean layer-1 attention map |
 | `results/latency_aokvqa.json` | Prefill latency and peak memory per configuration |
+| `results/norope/` | Extra control run (RoPE-free score) with its own predictions, selection counts and log |
 | `results/meta_*.json`, `results/run_*.log` | Versions, model revision, GPU, runtime, sanity-check output |
 | `results/summary.json`, `results/tables.md` | Output of `analyze.py` (all numbers quoted in the report) |
 | `figures/` | Figures in the report |
-| `report/report.html` | Source of the report PDF (rendered with headless Chrome) |
+| `report/report.html`, `report/fill.py` | Report source; `fill.py` inserts the tables from `results/summary.json`; `scripts/build_pdf.sh` renders the PDF with headless Chrome |
 
 ## Selection rules (all keep exactly *k* image tokens after layer *K*=2)
 
@@ -34,6 +35,7 @@ at matched latency?
 |---|---|
 | `fastv` | top-*k* head-averaged attention from the last prompt token at layer *K*-1 (official code) |
 | `fastv_avgq` | top-*k* attention received averaged over all query rows (criterion as described in the paper text) |
+| `fastvnr` | top-*k* last-token attention computed without RoPE (FEATHER's de-biased score; extra control) |
 | `cc4` | **proposed**: 24x24 grid split into 4x4 blocks; each block keeps its floor(k/16) highest-`fastv`-score tokens, leftover budget by global score |
 | `cc2` | same with 2x2 blocks (ablation) |
 | `grid` | evenly spaced raster positions, no attention (coverage-only control) |
@@ -79,5 +81,12 @@ python analyze.py          # writes results/summary.json, results/tables.md, fig
 python fastv_cov.py --task aokvqa --limit 20 --out results/smoke
 ```
 
-The A-OKVQA and MME runs in `results/` were run concurrently on the same GPU; the latency run was done afterwards alone.
+Extra control (RoPE-free FastV score, added after the main runs; FastV and CC-FastV are re-run in the same job as a determinism check):
+
+```bash
+python fastv_cov.py --task aokvqa --methods fastv,fastvnr,cc4 --sanity 2 --out results/norope
+```
+
+The A-OKVQA and MME runs in `results/` were run concurrently on one A100 (this affects only their runtime).
+The control run and then the latency benchmark were run on a second, otherwise idle A100-40GB VM.
 Reproducing the full numbers needs a GPU (about 1 A100-hour); `analyze.py` and every table/figure can be regenerated from the saved outputs without a GPU.

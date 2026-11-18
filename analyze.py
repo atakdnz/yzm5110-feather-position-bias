@@ -256,9 +256,12 @@ if os.path.exists(sel_p):
         md.append(f"| {m} | " + " | ".join(f"{sp[f'{m}@{k}']['mean_y']:.2f} / {100 * sp[f'{m}@{k}']['frac_top_half']:.0f}%" for k in BUDGETS) + " |")
     md.append(f"\nLast-token attention mass (layer 1, head-mean, per-image normalised) in top half: {100 * sp['attn_mass_top_half']:.1f}%; in last row: {100 * sp['attn_mass_bottom_row']:.1f}%")
 
-    fig, ax = plt.subplots(1, 4, figsize=(7.2, 2.0))
-    panels = [("attn_mean", "Mean last-token attention\n(layer 1)"), ("fastv_at_58", "FastV keep freq.\nk=58"),
-              ("fastv_avgq_at_58", "Paper-text criterion\nk=58"), ("cc4_at_58", "CC-FastV 4x4 keep freq.\nk=58")]
+    panels = [("attn_mean", "Mean last-token attn.\n(layer 1)"), ("fastv_at_58", "FastV (code)\nkeep freq., k=58"),
+              ("fastv_avgq_at_58", "Paper-text criterion\nkeep freq., k=58")]
+    if "fastvnr_at_58" in Z:
+        panels.append(("fastvnr_at_58", "RoPE-free score\nkeep freq., k=58"))
+    panels.append(("cc4_at_58", "CC-FastV 4x4\nkeep freq., k=58"))
+    fig, ax = plt.subplots(1, len(panels), figsize=(7.4, 1.85))
     for a, (key, title) in zip(ax, panels):
         im = a.imshow(Z[key].reshape(24, 24) / (1 if key == "attn_mean" else nq), cmap="viridis")
         a.set_title(title, fontsize=8)
@@ -269,7 +272,7 @@ if os.path.exists(sel_p):
     plt.close()
 
     fig, a = plt.subplots(figsize=(3.4, 2.3))
-    for m, st in [("fastv", "-o"), ("fastv_avgq", "-^"), ("cc4", "-s"), ("grid", "--"), ("rand0", ":")]:
+    for m, st in [("fastv", "-o"), ("fastv_avgq", "-^"), ("cc4", "-s"), ("grid", "--"), ("rand0", ":")] + ([("fastvnr", "-.")] if "fastvnr_at_58" in Z else []):
         c = Z[f"{m}_at_58"].reshape(24, 24).sum(1)
         a.plot(np.arange(24), c / c.sum(), st, ms=2.5, lw=1, label=m)
     a.set_xlabel("image row (0 = top)"); a.set_ylabel("share of kept tokens"); a.set_title("Row distribution of kept tokens, k=58", fontsize=8)
