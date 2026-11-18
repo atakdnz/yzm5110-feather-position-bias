@@ -1,16 +1,17 @@
-# FastV reproduction + spatial-coverage-constrained visual token pruning (LLaVA-1.5-7B)
+# Position bias in early visual token pruning: reproducing FEATHER's diagnosis on LLaVA-1.5-7B + a spatial-coverage constraint
 
 YZM5110 Multimodal Learning, research project. Report: `Akdeniz_YZM5110_Research.pdf` (also in this repository).
 
-**Question.** At a fixed visual-token budget after layer 2 of LLaVA-1.5-7B, does constraining FastV's
-attention-based token selection to cover the image spatially reduce its accuracy loss at high pruning ratios,
-at matched latency?
+**Questions.** (1) On LLaVA-1.5-7B with pruning after layer 2, does attention-ranked visual token pruning keep a
+bottom-of-image-biased token set, does a RoPE-free score remove the bias, and does it improve accuracy, as FEATHER reports?
+(2) At the same token budget, does a spatial-coverage constraint on the selection reduce the accuracy loss at high pruning ratios at matched latency?
 
-- Paper reproduced: Chen et al., *An Image is Worth 1/2 Tokens After Layer 2: Plug-and-Play Inference
-  Acceleration for Large Vision-Language Models* (ECCV 2024), arXiv:2403.06764,
-  official code https://github.com/pkunlp-icler/FastV (logic followed from commit `d165972`,
-  `src/FastV/llava-hf/transformers/.../modeling_llama.py`, and `src/FastV/inference/eval/inference_aokvqa.py`).
-- This repository contains an independent re-implementation for Hugging Face `transformers`; no FastV code is copied.
+- Paper reproduced: Endo, Wang, Yeung-Levy, *Feather the Throttle: Revisiting Visual Token Pruning for Vision-Language
+  Model Acceleration* (ICCV 2025), arXiv:2412.13180.
+- Baseline / sanity check: FastV (Chen et al., ECCV 2024), arXiv:2403.06764, official code https://github.com/pkunlp-icler/FastV
+  (logic followed from commit `d165972`; no code copied). The coverage-constrained rule is closely related to Window FastV
+  (Wen et al., ACL Findings 2025, arXiv:2502.11501, Sec. 4.2).
+- The code was written with an AI coding assistant (Claude Code); see the AI-use disclosure in the report.
 
 ## What is in here
 

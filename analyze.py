@@ -31,7 +31,7 @@ def ok_matrix(recs, name):
 
 
 def boot_ci(x, n=2000):
-    idx = rng.integers(0, len(x), (n, len(x)))
+    idx = np.random.default_rng(0).integers(0, len(x), (n, len(x)))  # same resamples for every statistic
     m = x[idx].mean(1)
     return float(np.percentile(m, 2.5)), float(np.percentile(m, 97.5))
 
@@ -264,6 +264,10 @@ if os.path.exists(sel_p):
             top_half = float(rows[:12].sum() / rows.sum())
             # mean number of distinct 4x4 blocks (of 16) occupied is not recoverable from counts; report row stats
             sp[f"{m}@{k}"] = dict(mean_y=ybar, frac_top_half=top_half)
+    from scipy.stats import chisquare
+    for k in BUDGETS:  # chi-square test of kept-token rows against a uniform row distribution (as in FEATHER)
+        rows_k = Z[f"fastv_at_{k}"].reshape(24, 24).sum(1)
+        sp[f"chi2_fastv@{k}"] = float(chisquare(rows_k).pvalue)
     am = Z["attn_mean"].reshape(24, 24)
     sp["attn_mass_top_half"] = float(am[:12].sum() / am.sum())
     sp["attn_mass_bottom_row"] = float(am[23].sum() / am.sum())
